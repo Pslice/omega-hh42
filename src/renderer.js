@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             await window.API.onSerialData(onSerialData);
         });
         function onSerialData(data, unit) {
-            console.log(data, unit);
+            return data;
         }
         portSelect.dispatchEvent(new Event('change'));
 

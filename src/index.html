@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy" 
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
     <title>Omega HH42 Device</title>
     <link rel="stylesheet" href="index.css" />
-    <link rel="stylesheet" href="../node_modules/uplot/dist/uPlot.min.css">
+    <script src="plotly.min.js"></script>
   </head>
   <body>
     <div id="chart"></div>
@@ -17,7 +17,8 @@
     <button id="stopReading">Stop Reading</button>
     <div id="status"></div>
     <div id="reading"><span id="temperature"></span><span id="unit"></span></div>
-    <script src="../node_modules/uplot/dist/uPlot.iife.min.js"></script>
+    <div id="chart"></div>
+
     <script src="renderer.js"></script>
     <script src="chart.js"></script>
   </body>
