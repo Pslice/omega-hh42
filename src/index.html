@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>Omega HH42 Device</title>
+    <link rel="stylesheet" href="index.css" />
+    <script src="plotly.min.js"></script>
+  </head>
+  <body>
+    <div id="chart"></div>
+    <h1>Omega HH42 Device</h1>
+    <select id="portSelect"></select>
+
+    <button id="startReading">Start Reading</button>
+    <button id="stopReading">Stop Reading</button>
+    <div id="status"></div>
+    <div id="reading"><span id="temperature"></span><span id="unit"></span></div>
+    <div id="chart"></div>
+
+    <script src="renderer.js"></script>
+    <script src="chart.js"></script>
+  </body>
+</html>
