@@ -24,6 +24,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('start reading');
         });
 
+        document.getElementById('setFahrenheit').addEventListener('click', () => {
+            console.log('set fahrenheit');
+            window.API.setFahrenheitMode();
+        });
+
+        document.getElementById('setCelsius').addEventListener('click', () => {
+            console.log('set celsius');
+            window.API.setCelsiusMode();
+        });
 
     } catch (error) {
         console.error('Error initializing OmegaHH42:', error);

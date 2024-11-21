@@ -1,13 +1,17 @@
-console.log('this is the chart');
-
 let chartData = {
     y: [],
     type: 'line',
-    name: 'data'
+    name: 'Temperature',
+
 };
 
 // Initialize the plot
-Plotly.newPlot('chart', [chartData]);
+Plotly.newPlot('chart', [chartData], {
+    title: 'Temperature',
+    xaxis: {
+        title: 'Time'
+    }
+});
 
 let counter = 0;
 

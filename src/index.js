@@ -22,7 +22,6 @@ const createWindow = () => {
 
   hh42 = new OmegaHH42(mainWindow);
 
-  mainWindow.webContents.openDevTools();
 };
 
 
@@ -50,9 +49,16 @@ function setupIpcHandlersTemperature() {
   ipcMain.on('updateTemperaturePort', (event, portName) => {
     hh42.initializeSerialPort(portName);
   });
+
+  ipcMain.on('setFahrenheitMode', () => {
+    if (hh42) {
+      hh42.setFahrenheitMode();
+    }
+  });
+
+  ipcMain.on('setCelsiusMode', () => {
+    if (hh42) {
+      hh42.setCelsiusMode();
+    }
+  });
 }
-// function setupIpcHandlersTemperature() {
-//   ipcMain.on('updateTemperaturePort', (event, portName) => {
-//     hh42.initializeSerialPort(portName);
-//   });
-// }

@@ -23,7 +23,7 @@ class HH42 {
 
         this.portTemperature.on('data', (data) => {
             this.buffer += data.toString('ascii');
-            this.processBuffer();
+            this.processBuffer(data);
         });
 
         this.portTemperature.on('open', () => {
@@ -47,19 +47,27 @@ class HH42 {
         });
     }
 
-    processBuffer() {
-        let lines = this.buffer.split('\r\n');
-        this.buffer = lines.pop();
+    processBuffer(data) {
+        if (!this.portTemperature || !this.portTemperature.isOpen) {
+            return;
+        }
 
-        for (let line of lines) {
-            line = line.trim();
-            if (line === '>' || line === 'T') continue;
-            if (/^[-\s]?\d+\.\d+\s?[CF]?$/.test(line)) {   // Check if the data is a valid temperature reading
-                let temperatureValue = parseFloat(line);
-                let unit = line.charAt(line.length - 1);
+        try {
+            let lines = this.buffer.split('\r\n');
+            this.buffer = lines.pop();
 
-                this.mainWindow.webContents.send('serialDataTemperature', temperatureValue, unit);
+            for (let line of lines) {
+                line = line.trim();
+                if (line === '>' || line === 'T') continue;
+                if (/^[-\s]?\d+\.\d+\s?[CF]?$/.test(line)) {   // Check if the data is a valid temperature reading
+                    let temperatureValue = parseFloat(line);
+                    let unit = line.charAt(line.length - 1);
+
+                    this.mainWindow.webContents.send('serialDataTemperature', temperatureValue, unit);
+                }
             }
+        } catch (error) {
+            console.error('Error processing buffer:', error);
         }
     }
 
@@ -71,8 +79,9 @@ class HH42 {
 
     requestTemperatureReading() {
         if (this.portTemperature && this.portTemperature.isOpen) {
+            this.setOutputMode();
             this.readingInterval = setInterval(() => {
-                this.portTemperature.write('T\r\n');
+                this.setOutputMode();
             }, 524); // Send command every 524 ms as per HH42 documentation
         }
     }
@@ -91,6 +100,30 @@ class HH42 {
         } catch (err) {
             console.error('Error getting available ports:', err);
             return [];
+        }
+    }
+
+    cleanup() {
+        if (this.portTemperature && this.portTemperature.isOpen) {
+            this.portTemperature.close();
+        }
+    }
+
+    setOutputMode() {
+        if (this.portTemperature && this.portTemperature.isOpen) {
+            this.portTemperature.write('T\r\n');
+        }
+    }
+
+    setFahrenheitMode() {
+        if (this.portTemperature && this.portTemperature.isOpen) {
+            this.portTemperature.write('SF\r\n');
+        }
+    }
+
+    setCelsiusMode() {
+        if (this.portTemperature && this.portTemperature.isOpen) {
+            this.portTemperature.write('SC\r\n');
         }
     }
 }
