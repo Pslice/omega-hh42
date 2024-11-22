@@ -19,10 +19,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         portSelect.dispatchEvent(new Event('change'));
 
-        const startReadingButton = document.getElementById('startReading');
-        startReadingButton.addEventListener('click', async () => {
-            console.log('start reading');
-        });
 
         document.getElementById('setFahrenheit').addEventListener('click', () => {
             console.log('set fahrenheit');

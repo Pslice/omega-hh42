@@ -1,17 +1,26 @@
 let chartData = {
     y: [],
-    type: 'line',
+    type: 'scatter',
+    mode: 'lines',
     name: 'Temperature',
-
+    line: {
+        color: 'red'
+    }
 };
-
-// Initialize the plot
-Plotly.newPlot('chart', [chartData], {
+const layout = {
     title: 'Temperature',
     xaxis: {
         title: 'Time'
     }
-});
+};
+
+const config = {
+    displayModeBar: false,
+    responsive: true
+};
+
+// Initialize the plot
+Plotly.newPlot('chart', [chartData], layout, config);
 
 let counter = 0;
 
@@ -28,8 +37,18 @@ window.API.onSerialData((data, unit) => {
     if (counter > 50) {
         Plotly.relayout('chart', {
             xaxis: {
-                range: [counter - 50, counter]
+                range: [counter - 50, counter],
+                showticklabels: false
             }
         });
     }
+    const maxTemperature = Math.max(...chartData.y.flat());
+    const minTemperature = Math.min(...chartData.y.flat());
+
+    const rangePadding = (maxTemperature - minTemperature) * 0.3;
+    Plotly.relayout('chart', {
+        yaxis: {
+            range: [minTemperature - rangePadding, maxTemperature + rangePadding]
+        }
+    });
 });

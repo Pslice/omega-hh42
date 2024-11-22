@@ -5,7 +5,8 @@
   "description": "My Electron application description",
   "main": "src/index.js",
   "scripts": {
-    "start": "electron-forge start",
+    "start": "npm run build:css && electron-forge start",
+    "build:css": "npx tailwindcss -i ./src/input.css -o ./src/output.css",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",

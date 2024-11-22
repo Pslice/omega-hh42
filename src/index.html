@@ -9,15 +9,11 @@
     <script src="plotly.min.js"></script>
   </head>
   <body>
-    <div class="container">
-      <h1>Omega HH42 Device</h1>
-      <select id="portSelect"></select>
-
-    <button id="startReading">Start Reading</button>
-    <button id="stopReading">Stop Reading</button>
-      <button id="setFahrenheit">°F Mode</button>
-      <button id="setCelsius">°C Mode</button>
-      <div id="status"></div>
+    <div class="mx-auto max-w-screen-lg">
+      <h1 class="text-2xl font-bold mb-4">Omega HH42 Device</h1>
+      <select id="portSelect" class="w-full mb-4"></select>
+      <button id="setFahrenheit" class="bg-green-500 text-white px-4 py-2 rounded mb-4">°F Mode</button>
+      <button id="setCelsius" class="bg-green-500 text-white px-4 py-2 rounded mb-4">°C Mode</button>
       <div id="reading"><span id="temperature"></span><span id="unit"></span></div>
       <div id="chart" class="w-full h-full"></div>
     </div>
