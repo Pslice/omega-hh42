@@ -4,14 +4,28 @@ let chartData = {
     mode: 'lines',
     name: 'Temperature',
     line: {
-        color: 'red'
+        color: '#ef4444'
     }
 };
 const layout = {
-    title: 'Temperature',
+    title: {
+        text: 'Temperature',
+        font: {
+            color: '#cbd5e1'
+        }
+    },
     xaxis: {
-        title: 'Time'
-    }
+        title: 'Time',
+        gridcolor: '#d1d5db',
+        color: '#d1d5db'
+    },
+    yaxis: {
+        title: '°C',
+        gridcolor: '#d1d5db',
+        color: '#cbd5e1'
+    },
+    plot_bgcolor: '#334155',  // Light gray background for the plot area
+    paper_bgcolor: '#334155'
 };
 
 const config = {
@@ -25,30 +39,32 @@ Plotly.newPlot('chart', [chartData], layout, config);
 let counter = 0;
 
 // Listen for serial data
-window.API.onSerialData((data, unit) => {
-    // Extend the chart with new data
+window.API.onSerialData((data) => {
+
     Plotly.extendTraces('chart', {
         y: [[data]]
     }, [0]);
 
     counter++;
 
-    // Keep only last 50 points visible
     if (counter > 50) {
         Plotly.relayout('chart', {
             xaxis: {
                 range: [counter - 50, counter],
-                showticklabels: false
             }
         });
     }
-    const maxTemperature = Math.max(...chartData.y.flat());
-    const minTemperature = Math.min(...chartData.y.flat());
+
+
+
+    const maxTemperature = Math.max(...data);
+    const minTemperature = Math.min(...data);
 
     const rangePadding = (maxTemperature - minTemperature) * 0.3;
     Plotly.relayout('chart', {
         yaxis: {
-            range: [minTemperature - rangePadding, maxTemperature + rangePadding]
+            range: [minTemperature - rangePadding, maxTemperature + rangePadding],
+            title: '°C'
         }
     });
 });

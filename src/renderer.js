@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const portSelect = document.getElementById('portSelect');
+        const temperature = document.getElementById('temperature');
+        const unit = document.getElementById('unit');
         const ports = await window.API.getPorts();
         ports.forEach(port => {
             const option = document.createElement('option');
@@ -14,21 +16,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             await window.API.updatePort(portSelect.value);
             await window.API.onSerialData(onSerialData);
         });
-        function onSerialData(data, unit) {
+        function onSerialData(data) {
+            temperature.textContent = data;
+            unit.textContent = '°C';
             return data;
         }
         portSelect.dispatchEvent(new Event('change'));
 
-
-        document.getElementById('setFahrenheit').addEventListener('click', () => {
-            console.log('set fahrenheit');
-            window.API.setFahrenheitMode();
-        });
-
-        document.getElementById('setCelsius').addEventListener('click', () => {
-            console.log('set celsius');
-            window.API.setCelsiusMode();
-        });
 
     } catch (error) {
         console.error('Error initializing OmegaHH42:', error);

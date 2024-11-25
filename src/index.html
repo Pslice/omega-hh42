@@ -8,14 +8,15 @@
     <link rel="stylesheet" href="output.css" />
     <script src="plotly.min.js"></script>
   </head>
-  <body>
-    <div class="mx-auto max-w-screen-lg">
-      <h1 class="text-2xl font-bold mb-4">Omega HH42 Device</h1>
-      <select id="portSelect" class="w-full mb-4"></select>
-      <button id="setFahrenheit" class="bg-green-500 text-white px-4 py-2 rounded mb-4">°F Mode</button>
-      <button id="setCelsius" class="bg-green-500 text-white px-4 py-2 rounded mb-4">°C Mode</button>
-      <div id="reading"><span id="temperature"></span><span id="unit"></span></div>
-      <div id="chart" class="w-full h-full"></div>
+  <body class="bg-slate-800">
+    <div class="mx-auto max-w-screen-lg my-4">
+      <div class="my-4 border border-gray-300 bg-slate-700 rounded-lg p-4 shadow-lg">
+        <h1 class="text-2xl font-bold mb-4 p-2 text-red-500">Omega HH42 Device</h1>
+        <label for="portSelect" class="text-lg p-2 text-slate-300">Select Port:</label>
+        <select id="portSelect" class="cursor-pointer p-4 border border-gray-300 rounded-lg mb-4 bg-slate-50"></select>
+        <div id="reading" class="m-2 p-4"><span id="temperature" class="text-red-200 font-bold mx-2"></span><span id="unit" class="text-sm px-2 text-slate-300"></span></div>
+        <div id="chart" class="w-full h-full"></div>
+      </div>
     </div>
     <script src="renderer.js"></script>
     <script src="chart.js"></script>
