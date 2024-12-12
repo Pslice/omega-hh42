@@ -2,7 +2,17 @@ const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('node:path');
 const OmegaHH42 = require('./device/hh42');
 const createMenuTemplate = require('./menu');
+const sqlite3 = require('sqlite3').verbose();
 
+// Initialize database
+const db = new sqlite3.Database(path.join(__dirname, 'temperatures.db'));
+db.run(`
+  CREATE TABLE IF NOT EXISTS temperatures (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      temperature REAL NOT NULL,
+      timestamp TEXT NOT NULL
+  )
+`);
 let hh42;
 let mainWindow;
 
@@ -79,3 +89,24 @@ function setupIpcHandlersTemperature() {
     }
   });
 }
+ipcMain.handle('save-temperature', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'INSERT INTO temperatures (temperature, timestamp) VALUES (?, ?)',
+      [data.temperature, data.timestamp],
+      function (err) {
+        if (err) reject(err);
+        resolve(this.lastID);
+      }
+    );
+  });
+});
+
+ipcMain.handle('getTemperatures', async () => {
+  return new Promise((resolve, reject) => {
+    db.all('SELECT * FROM temperatures', (err, rows) => {
+      if (err) reject(err);
+      resolve(rows);
+    });
+  });
+});

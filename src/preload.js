@@ -9,4 +9,6 @@ contextBridge.exposeInMainWorld('API', {
     getPorts: () => ipcRenderer.invoke(`getTemperaturePorts`),
     setFahrenheitMode: () => ipcRenderer.send('setFahrenheitMode'),
     setCelsiusMode: () => ipcRenderer.send('setCelsiusMode'),
+    saveTemperature: data => ipcRenderer.send('saveTemperature', data),
+    getTemperatures: () => ipcRenderer.invoke('getTemperatures'),
 });

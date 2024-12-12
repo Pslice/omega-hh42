@@ -14,9 +14,14 @@
         <h1 class="text-2xl font-bold mb-4 p-2 text-red-500">Omega HH42 Device</h1>
         <label for="portSelect" class="text-lg p-2 text-slate-300">Select Port:</label>
         <select id="portSelect" class="cursor-pointer p-4 border border-gray-300 rounded-lg mb-4 bg-slate-50"></select>
+        <button id="db-view-button" class="bg-blue-600 text-white p-2 rounded-lg">View Data Table</button>
         <div id="reading" class="m-2 p-4"><span id="temperature" class="text-red-200 font-bold mx-2"></span><span id="unit" class="text-sm px-2 text-slate-300"></span></div>
         <div id="chart" class="w-full h-full"></div>
       </div>
+    </div>
+    <div class="mx-auto max-w-screen-lg my-4 hidden" id="db-table-container-modal">
+      <button id="db-table-button" class="bg-emerald-600 text-white p-2 rounded-lg">Export to Excel</button>
+      <table id="db-table" class="table-auto w-full"></table>
     </div>
     <script src="renderer.js"></script>
     <script src="chart.js"></script>
