@@ -34,19 +34,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         portSelect.dispatchEvent(new Event('change'));
 
-        dbViewButton.addEventListener('click', async () => {
-            dbTableContainerModal.classList.remove('hidden');
+        const modal = document.getElementById('db-table-container-modal');
+        const modalClose = document.getElementById('modal-close');
+
+        dbViewButton.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.add('opacity-100');
+            }, 10);
+        });
+
+        modalClose.addEventListener('click', () => {
+            modal.classList.remove('opacity-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modalClose.click();
+            }
         });
 
         dbTableButton.addEventListener('click', async () => {
             // pull data from db
             const data = await window.API.getTemperatures();
-            dbTable.innerHTML = '';
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${row.temperature}</td><td>${row.timestamp}</td>`;
-                dbTable.appendChild(tr);
-            });
+            console.log(data);
+            // dbTable.innerHTML = '';
+            // data.forEach(row => {
+            //     const tr = document.createElement('tr');
+            //     tr.innerHTML = `<td>${row.temperature}</td><td>${row.timestamp}</td>`;
+            //     dbTable.appendChild(tr);
+            // });
         });
 
     } catch (error) {

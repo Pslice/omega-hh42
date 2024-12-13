@@ -9,19 +9,32 @@
     <script src="plotly.min.js"></script>
   </head>
   <body class="bg-slate-800">
-    <div class="mx-auto max-w-screen-lg my-4">
+    <div class="draggable h-8 bg-slate-900 fixed top-0 left-0 right-0"></div>
+    <div class="mx-auto max-w-screen-lg mt-12 mb-4">
       <div class="my-4 border border-gray-300 bg-slate-700 rounded-lg p-4 shadow-lg">
-        <h1 class="text-2xl font-bold mb-4 p-2 text-red-500">Omega HH42 Device</h1>
-        <label for="portSelect" class="text-lg p-2 text-slate-300">Select Port:</label>
-        <select id="portSelect" class="cursor-pointer p-4 border border-gray-300 rounded-lg mb-4 bg-slate-50"></select>
-        <button id="db-view-button" class="bg-blue-600 text-white p-2 rounded-lg">View Data Table</button>
+        <h1 class="text-2xl font-bold mb-4 p-2 text-red-500 text-outline">Omega HH42 Device</h1>
+        <label for="portSelect" class="text-lg p-2 text-slate-300 no-drag">Select Port:</label>
+        <select id="portSelect" class="no-drag cursor-pointer p-4 border border-gray-300 rounded-lg mb-4 bg-slate-50"></select>
+        <button id="db-view-button" class="no-drag bg-blue-600 text-white p-2 rounded-lg">View Data Table</button>
         <div id="reading" class="m-2 p-4"><span id="temperature" class="text-red-200 font-bold mx-2"></span><span id="unit" class="text-sm px-2 text-slate-300"></span></div>
         <div id="chart" class="w-full h-full"></div>
       </div>
     </div>
-    <div class="mx-auto max-w-screen-lg my-4 hidden" id="db-table-container-modal">
-      <button id="db-table-button" class="bg-emerald-600 text-white p-2 rounded-lg">Export to Excel</button>
-      <table id="db-table" class="table-auto w-full"></table>
+    <div id="db-table-container-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out">
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-slate-700 rounded-lg p-6 max-w-screen-lg w-full relative">
+          <button id="modal-close" class="absolute top-4 right-4 text-slate-300 hover:text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <h2 class="text-xl text-slate-300 mb-4">Temperature Data</h2>
+          <button id="db-table-button" class="bg-emerald-600 text-white p-2 rounded-lg mb-4">Export to Excel</button>
+          <div class="max-h-[60vh] overflow-auto">
+            <table id="db-table" class="table-auto w-full text-slate-300"></table>
+          </div>
+        </div>
+      </div>
     </div>
     <script src="renderer.js"></script>
     <script src="chart.js"></script>
