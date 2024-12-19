@@ -1,0 +1,11 @@
+[
+    {
+        "name": "Jane",
+        "age": 25,
+        "address": {
+            "city": "Los Angeles",
+            "state": "CA"
+        },
+        "food": "ice cream"
+    }
+]

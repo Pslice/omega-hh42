@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        function sumAndMultiply(a, b) {
+            return [a + b, a * b];
+        }
+        function test() {
+            const arrayToDestructure = [1, 2, 3, 4, 5];
+            const [a, b, ...rest] = arrayToDestructure;
+            console.log(a, b, rest);
+
+        }
+        test();
+        const obj1 = {
+            a: 1,
+            b: 2,
+            c: 3
+        }
+        const { a, b, ...rest } = obj1;
+        console.log(a, b, rest);
+        const [sum, multiply] = sumAndMultiply(a, b);
+        console.log(sum, multiply);
+
+        const person1 = {
+            name: 'John',
+            age: 30,
+            address: {
+                city: 'New York',
+                state: 'NY'
+            }
+        }
+        const person2 = {
+            name: 'Jane',
+            age: 25,
+            address: {
+                city: 'Los Angeles',
+                state: 'CA'
+            },
+            food: 'ice cream'
+        }
+        const now = () => {
+            return new Date().getTime();
+        }
+        console.log(now() % 2);
+         const { name: FirstName, age, address: { city, state }, food = 'pizza' } = person2;
+        if(now() % 2  === 0) {
+            const { name: FirstName, age, address: { city, state }, food = 'pizza' } = person1;
+        } 
+      
+        console.log(FirstName, age, city, state, food);
+
+
+    </script>
+</body>
+</html>

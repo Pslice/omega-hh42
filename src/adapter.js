@@ -31,3 +31,15 @@ const printerAdapter = new PrinterAdapter(oldPrinter);
 
 // Client code can now use the new interface
 printerAdapter.print("Hello, Adapter Pattern!");
+
+
+function printer(printerClass) {
+    // Boolean check
+    const hasPrintMethod = typeof printerClass.print === 'function';
+
+    if (!hasPrintMethod) {
+        return false;
+    }
+
+    return printerClass.print();
+}
