@@ -1,3 +1,4 @@
+import { recordTemperature } from './db.js';
 let chartData = {
     y: [],
     type: 'scatter',
@@ -44,27 +45,24 @@ window.API.onSerialData((data) => {
     Plotly.extendTraces('chart', {
         y: [[data]]
     }, [0]);
+    recordTemperature(data, 'C');
+    const maxTemperature = Math.max(...data);
+    const minTemperature = Math.min(...data);
 
+    const rangePadding = (maxTemperature - minTemperature) * 0.3;
     counter++;
 
     if (counter > 50) {
         Plotly.relayout('chart', {
             xaxis: {
                 range: [counter - 50, counter],
+            },
+            yaxis: {
+                range: [minTemperature - rangePadding, maxTemperature + rangePadding],
+                title: '°C'
             }
         });
     }
 
 
-
-    const maxTemperature = Math.max(...data);
-    const minTemperature = Math.min(...data);
-
-    const rangePadding = (maxTemperature - minTemperature) * 0.3;
-    Plotly.relayout('chart', {
-        yaxis: {
-            range: [minTemperature - rangePadding, maxTemperature + rangePadding],
-            title: '°C'
-        }
-    });
 });

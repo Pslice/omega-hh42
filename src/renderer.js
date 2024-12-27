@@ -1,13 +1,18 @@
+import { recordTemperature, getTemperatures } from './db.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const dbViewButton = document.getElementById('db-view-button');
         const dbTableButton = document.getElementById('db-table-button');
-        const dbTableContainerModal = document.getElementById('db-table-container-modal');
-        const dbTable = document.getElementById('db-table');
+
         const portSelect = document.getElementById('portSelect');
         const temperature = document.getElementById('temperature');
         const unit = document.getElementById('unit');
+        const testButton = document.getElementById('test-button');
         const ports = await window.API.getPorts();
+        testButton.addEventListener('click', () => {
+            recordTemperature(100, 'C');
+        });
         ports.forEach(port => {
             const option = document.createElement('option');
             option.value = port;
@@ -21,14 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             await window.API.onSerialData(onSerialData);
         });
         function onSerialData(data) {
+            console.log('onSerialData', data);
             temperature.textContent = data;
             unit.textContent = '°C';
-
-            // Save data to database
-            window.API.saveTemperature({
-                temperature: data,
-                timestamp: new Date().toISOString()
-            });
 
             return data;
         }
@@ -58,19 +58,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         dbTableButton.addEventListener('click', async () => {
-            // pull data from db
-            const data = await window.API.getTemperatures();
+            const data = await getTemperatures();
             console.log(data);
-            // dbTable.innerHTML = '';
-            // data.forEach(row => {
-            //     const tr = document.createElement('tr');
-            //     tr.innerHTML = `<td>${row.temperature}</td><td>${row.timestamp}</td>`;
-            //     dbTable.appendChild(tr);
-            // });
         });
 
     } catch (error) {
         console.error('Error initializing OmegaHH42:', error);
     }
-});
 
+
+});

@@ -7,8 +7,4 @@ contextBridge.exposeInMainWorld('API', {
     onSerialData: callback => ipcRenderer.on(`serialDataTemperature`, (event, data, unit) => callback(data, unit)),
     onSerialError: callback => ipcRenderer.on(`serialErrorTemperature`, (event, error) => callback(error)),
     getPorts: () => ipcRenderer.invoke(`getTemperaturePorts`),
-    setFahrenheitMode: () => ipcRenderer.send('setFahrenheitMode'),
-    setCelsiusMode: () => ipcRenderer.send('setCelsiusMode'),
-    saveTemperature: data => ipcRenderer.send('saveTemperature', data),
-    getTemperatures: () => ipcRenderer.invoke('getTemperatures'),
 });

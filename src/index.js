@@ -2,21 +2,11 @@ const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('node:path');
 const OmegaHH42 = require('./device/hh42');
 const createMenuTemplate = require('./menu');
-const sqlite3 = require('sqlite3').verbose();
 
-// Initialize database
-const db = new sqlite3.Database(path.join(__dirname, 'temperatures.db'));
-db.run(`
-  CREATE TABLE IF NOT EXISTS temperatures (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      temperature REAL NOT NULL,
-      timestamp TEXT NOT NULL
-  )
-`);
+
 let hh42;
 let mainWindow;
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
@@ -76,37 +66,5 @@ function setupIpcHandlersTemperature() {
       });
     }
   });
-
-  ipcMain.on('setFahrenheitMode', () => {
-    if (hh42) {
-      hh42.setFahrenheitMode();
-    }
-  });
-
-  ipcMain.on('setCelsiusMode', () => {
-    if (hh42) {
-      hh42.setCelsiusMode();
-    }
-  });
 }
-ipcMain.handle('save-temperature', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    db.run(
-      'INSERT INTO temperatures (temperature, timestamp) VALUES (?, ?)',
-      [data.temperature, data.timestamp],
-      function (err) {
-        if (err) reject(err);
-        resolve(this.lastID);
-      }
-    );
-  });
-});
 
-ipcMain.handle('getTemperatures', async () => {
-  return new Promise((resolve, reject) => {
-    db.all('SELECT * FROM temperatures', (err, rows) => {
-      if (err) reject(err);
-      resolve(rows);
-    });
-  });
-});
