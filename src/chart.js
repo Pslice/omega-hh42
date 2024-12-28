@@ -38,17 +38,21 @@ const config = {
 Plotly.newPlot('chart', [chartData], layout, config);
 
 let counter = 0;
-
+const temperatureData = [];
 // Listen for serial data
 window.API.onSerialData((data) => {
 
     Plotly.extendTraces('chart', {
         y: [[data]]
     }, [0]);
-    recordTemperature(data, 'C');
-    const maxTemperature = Math.max(...data);
-    const minTemperature = Math.min(...data);
+    temperatureData.push(data);
 
+    recordTemperature(data, 'C');
+    const maxTemperature = Math.max(...temperatureData);
+    const minTemperature = Math.min(...temperatureData);
+    if (temperatureData.length > 25) {
+        temperatureData.shift();
+    }
     const rangePadding = (maxTemperature - minTemperature) * 0.3;
     counter++;
 

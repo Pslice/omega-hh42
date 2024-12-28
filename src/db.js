@@ -34,6 +34,7 @@ async function getTemperatures(startDate = null, endDate = null) {
 
 // Record new temperature
 async function recordTemperature(temperatureValue, temperatureUnit) {
+    console.log('recordTemperature', temperatureValue, temperatureUnit);
     return fetchWithAuth(API_ENDPOINT, 'POST', {
         temperature_value: temperatureValue,
         temperature_unit: temperatureUnit,
