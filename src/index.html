@@ -1,43 +1,163 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" 
-      content="default-src 'self'; connect-src 'self' https://patrickcool.net; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
-    <title>Omega HH42 Device</title>
-    <link rel="stylesheet" href="output.css" />
-    <script src="plotly.min.js"></script>
-  </head>
-  <body class="bg-slate-800">
-    <div class="draggable h-8 bg-slate-900 fixed top-0 left-0 right-0"></div>
-    <div class="mx-auto max-w-screen-lg mt-12 mb-4">
-      <div class="my-4 border border-gray-300 bg-slate-700 rounded-lg p-4 shadow-lg">
-        <h1 class="text-2xl font-bold mb-4 p-2 text-red-500 text-outline">Omega HH42 Device</h1>
-        <label for="portSelect" class="text-lg p-2 text-slate-300 no-drag">Select Port:</label>
-        <select id="portSelect" class="no-drag cursor-pointer p-4 border border-gray-300 rounded-lg mb-4 bg-slate-50"></select>
-        <button id="db-view-button" class="no-drag bg-blue-600 text-white p-2 rounded-lg">View Data Table</button>
-        <div id="reading" class="m-2 p-4"><span id="temperature" class="text-red-200 font-bold mx-2"></span><span id="unit" class="text-sm px-2 text-slate-300"></span></div>
-        <div id="chart" class="w-full h-full"></div>
-        <button id="test-button" class="bg-emerald-600 text-white p-2 rounded-lg mb-4 hover:bg-emerald-700 transition-all duration-300 ease-in-out cursor-pointer hover:shadow hover:-translate-y-1">Test Data Insert</button>
-      </div>
-    </div>
-    <div id="db-table-container-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden opacity-0 transition-opacity duration-300 ease-in-out">
-      <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-slate-700 rounded-lg p-6 max-w-screen-lg w-full relative">
-          <button id="modal-close" class="absolute top-4 right-4 text-slate-300 hover:text-white">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <h2 class="text-xl text-slate-300 mb-4">Temperature Data</h2>
-          <button id="db-table-button" class="bg-emerald-600 text-white p-2 rounded-lg mb-4">Export to Excel</button>
-          <div class="max-h-[60vh] overflow-auto">
-            <table id="db-table" class="table-auto w-full text-slate-300"></table>
-          </div>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; connect-src 'self' https://patrickcool.net; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+        />
+        <title>Omega HH42 Device</title>
+        <link rel="stylesheet" href="output.css" />
+        <script src="plotly.min.js"></script>
+    </head>
+    <body class="h-screen overflow-hidden bg-slate-900 text-slate-100">
+        <!-- Draggable title bar -->
+        <div class="draggable fixed inset-x-0 top-0 h-8 bg-slate-950"></div>
+
+        <!-- Main content -->
+        <main class="flex h-full flex-col px-4 pb-4 pt-10">
+            <!-- Header card -->
+            <div
+                class="flex flex-1 flex-col rounded-xl bg-slate-800 p-6 shadow-xl ring-1 ring-slate-700/50"
+            >
+                <!-- Header section -->
+                <header
+                    class="mb-6 flex flex-wrap items-center justify-between gap-4"
+                >
+                    <h1 class="text-2xl font-bold text-red-500">
+                        Omega HH42 Device
+                    </h1>
+
+                    <!-- Temperature display -->
+                    <div
+                        class="flex items-baseline gap-1 rounded-lg bg-slate-900/80 px-4 py-2"
+                    >
+                        <span
+                            id="temperature"
+                            class="text-3xl font-bold tabular-nums text-red-400"
+                        ></span>
+                        <span id="unit" class="text-xl text-slate-400"></span>
+                    </div>
+                </header>
+
+                <!-- Controls section -->
+                <div class="mb-6 flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <label
+                            for="portSelect"
+                            class="no-drag text-sm font-medium text-slate-400"
+                        >
+                            Port
+                        </label>
+                        <select
+                            id="portSelect"
+                            class="no-drag cursor-pointer rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 transition-colors hover:border-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        ></select>
+                        <button
+                            id="refresh-ports-button"
+                            class="no-drag rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-500/50"
+                            title="Refresh ports"
+                        >
+                            <svg
+                                class="h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <button
+                        id="db-view-button"
+                        class="no-drag rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    >
+                        View Data Table
+                    </button>
+                </div>
+
+                <!-- Chart container -->
+                <div
+                    class="flex-1 overflow-hidden rounded-lg bg-slate-700/50 p-2"
+                >
+                    <div id="chart" class="h-full w-full"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modal -->
+        <div
+            id="db-table-container-modal"
+            class="fixed inset-0 z-50 hidden bg-black/60 opacity-0 backdrop-blur-sm transition-opacity duration-300"
+        >
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <div
+                    class="relative w-full max-w-4xl rounded-xl bg-slate-800 p-6 shadow-2xl ring-1 ring-slate-700/50"
+                >
+                    <!-- Modal close button -->
+                    <button
+                        id="modal-close"
+                        class="absolute right-4 top-4 rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+                    >
+                        <svg
+                            class="h-6 w-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
+
+                    <!-- Modal header -->
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold text-slate-100">
+                            Temperature Data
+                        </h2>
+                        <p class="mt-1 text-sm text-slate-400">
+                            Historical temperature readings from the device
+                        </p>
+                    </div>
+
+                    <!-- Modal actions -->
+                    <div class="mb-4 flex items-center gap-4">
+                        <button
+                            id="db-export-button"
+                            class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                        >
+                            Export CSV
+                        </button>
+                        <span
+                            id="db-record-count"
+                            class="text-sm text-slate-400"
+                        ></span>
+                    </div>
+
+                    <!-- Table container -->
+                    <div
+                        class="max-h-[60vh] overflow-auto rounded-lg bg-slate-900/50"
+                    >
+                        <table
+                            id="db-table"
+                            class="w-full text-left text-sm text-slate-300"
+                        ></table>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    <script type="module" src="renderer.js"></script>
-    <script type="module" src="chart.js"></script>
-  </body>
+
+        <script type="module" src="renderer.js"></script>
+        <script type="module" src="chart.js"></script>
+    </body>
 </html>

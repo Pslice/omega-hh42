@@ -14,7 +14,7 @@ module.exports = {
     function ({ addUtilities }) {
       const newUtilities = {
         '.text-outline': {
-          'text-shadow': '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff',
+          'text-shadow': '-0.2px -0.2px 1px #fff, 0.2px -0.2px 1px #fff, -0.2px 0.2px 1px #fff, 0.2px 0.2px 1px #fff',
         },
       }
       addUtilities(newUtilities)

@@ -103,12 +103,6 @@ class HH42 {
         }
     }
 
-    cleanup() {
-        if (this.portTemperature && this.portTemperature.isOpen) {
-            this.portTemperature.close();
-        }
-    }
-
     setOutputMode() {
         if (this.portTemperature && this.portTemperature.isOpen) {
             this.portTemperature.write('T\r\n');
