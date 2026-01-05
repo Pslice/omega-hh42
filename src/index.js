@@ -8,10 +8,6 @@ let hh42;
 let mainWindow;
 let temperatureDb;
 
-if (require("electron-squirrel-startup")) {
-  app.quit();
-}
-
 const createWindow = () => {
   mainWindow = new BrowserWindow({
     width: 700,
@@ -27,6 +23,7 @@ const createWindow = () => {
 
   mainWindow.loadFile(path.join(__dirname, "index.html"));
   hh42 = new OmegaHH42(mainWindow);
+  mainWindow.hh42 = hh42;
 };
 
 app.whenReady().then(async () => {
@@ -94,6 +91,16 @@ function setupIpcHandlersDatabase() {
       return await temperatureDb.getTemperatures(startDate, endDate);
     } catch (error) {
       console.error("Error getting temperatures:", error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle("resetDatabase", async () => {
+    try {
+      await temperatureDb.clearAllTemperatures();
+      return { success: true };
+    } catch (error) {
+      console.error("Error resetting database:", error);
       throw error;
     }
   });

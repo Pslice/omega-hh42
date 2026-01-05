@@ -1,6 +1,11 @@
 import { getTemperatures } from "./db.js";
 
 let simulationInterval = null;
+let simulationUnit = "C";
+
+function celsiusToFahrenheit(celsius) {
+  return parseFloat(((celsius * 9) / 5 + 32).toFixed(1));
+}
 
 function startSimulation() {
   let baseTemp = 22.0;
@@ -17,12 +22,16 @@ function startSimulation() {
     // Keep temperature in realistic range
     baseTemp = Math.max(15, Math.min(35, baseTemp));
 
-    const simulatedTemp = parseFloat(baseTemp.toFixed(1));
+    const simulatedTempCelsius = parseFloat(baseTemp.toFixed(1));
+    const simulatedTemp =
+      simulationUnit === "F"
+        ? celsiusToFahrenheit(simulatedTempCelsius)
+        : simulatedTempCelsius;
 
     // Dispatch custom event for simulated data
     window.dispatchEvent(
       new CustomEvent("simulatedTemperature", {
-        detail: simulatedTemp,
+        detail: { temp: simulatedTemp, unit: simulationUnit },
       }),
     );
   }, 1000);
@@ -169,7 +178,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Listen for simulated temperature events
     window.addEventListener("simulatedTemperature", (e) => {
-      updateTemperatureDisplay(e.detail, "C");
+      updateTemperatureDisplay(e.detail.temp, e.detail.unit);
+    });
+
+    // Listen for temperature unit changes from the menu
+    window.API.onSetCelsiusMode(() => {
+      simulationUnit = "C";
+    });
+
+    window.API.onSetFahrenheitMode(() => {
+      simulationUnit = "F";
     });
 
     portSelect.addEventListener("change", async () => {
@@ -218,6 +236,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     dbExportButton.addEventListener("click", () => {
       exportToCsv(cachedData);
+    });
+
+    const dbResetButton = document.getElementById("db-reset-button");
+    dbResetButton.addEventListener("click", async () => {
+      if (
+        confirm(
+          "Are you sure you want to delete all temperature records? This cannot be undone.",
+        )
+      ) {
+        await window.API.resetDatabase();
+        cachedData = [];
+        renderTable(cachedData, dbTable);
+        dbRecordCount.textContent = "0 records";
+      }
     });
   } catch (error) {
     console.error("Error initializing OmegaHH42:", error);

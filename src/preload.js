@@ -15,4 +15,9 @@ contextBridge.exposeInMainWorld("API", {
     ipcRenderer.invoke("recordTemperature", temperatureValue, temperatureUnit),
   getTemperatures: (startDate, endDate) =>
     ipcRenderer.invoke("getTemperatures", startDate, endDate),
+  resetDatabase: () => ipcRenderer.invoke("resetDatabase"),
+  onSetCelsiusMode: (callback) =>
+    ipcRenderer.on("setCelsiusMode", () => callback()),
+  onSetFahrenheitMode: (callback) =>
+    ipcRenderer.on("setFahrenheitMode", () => callback()),
 });
