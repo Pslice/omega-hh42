@@ -44,13 +44,13 @@ class TemperatureDatabase {
         "INSERT INTO temperatures (temperature_value, temperature_unit) VALUES (?, ?)",
       );
       stmt.run(temperatureValue, temperatureUnit, function (err) {
+        stmt.finalize();
         if (err) {
           reject(err);
         } else {
           resolve({ id: this.lastID, temperatureValue, temperatureUnit });
         }
       });
-      stmt.finalize();
     });
   }
 

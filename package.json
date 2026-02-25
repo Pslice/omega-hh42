@@ -2,39 +2,35 @@
   "name": "omegahh42",
   "productName": "omegahh42",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Omega HH42 Thermocouple Thermometer Interface",
   "main": "src/index.js",
   "scripts": {
-    "start": "npm run build:css && electron-forge start",
+    "start": "npm run build:css && electron .",
     "build:css": "npx tailwindcss -i ./src/input.css -o ./src/output.css",
-    "package": "electron-forge package",
-    "make": "electron-forge make",
-    "publish": "electron-forge publish",
+    "build": "npm run build:css",
+    "postinstall": "electron-builder install-app-deps",
+    "build:unpack": "npm run build && electron-builder --dir",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:linux": "npm run build && electron-builder --linux",
     "lint": "echo \"No linting configured\""
-  },
-  "devDependencies": {
-    "@electron-forge/cli": "^7.5.0",
-    "@electron-forge/maker-deb": "^7.5.0",
-    "@electron-forge/maker-rpm": "^7.5.0",
-    "@electron-forge/maker-squirrel": "^7.5.0",
-    "@electron-forge/maker-zip": "^7.5.0",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
-    "@electron-forge/plugin-fuses": "^7.5.0",
-    "@electron/fuses": "^1.8.0",
-    "autoprefixer": "^10.4.20",
-    "electron": "^33.2.0",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15"
   },
   "keywords": [],
   "author": {
     "name": "Patrick Cool",
-    "email": "patrickscool@gmail.com"
+    "email": "patrickscool+hh42@gmail.com"
   },
   "license": "MIT",
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.3.9",
     "serialport": "^12.0.0",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15"
   }
 }

@@ -20,4 +20,13 @@ contextBridge.exposeInMainWorld("API", {
     ipcRenderer.on("setCelsiusMode", () => callback()),
   onSetFahrenheitMode: (callback) =>
     ipcRenderer.on("setFahrenheitMode", () => callback()),
+
+  // Auto-updater
+  checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
+  downloadUpdate: () => ipcRenderer.invoke("download-update"),
+  installUpdate: () => ipcRenderer.invoke("install-update"),
+  onUpdateStatus: (callback) =>
+    ipcRenderer.on("update-status", (event, status, data) =>
+      callback(status, data),
+    ),
 });

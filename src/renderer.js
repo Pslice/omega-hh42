@@ -251,6 +251,66 @@ document.addEventListener("DOMContentLoaded", async () => {
         dbRecordCount.textContent = "0 records";
       }
     });
+
+    // Auto-updater UI
+    const updateBanner = document.getElementById("update-banner");
+    const updateMessage = document.getElementById("update-message");
+    const updateActionBtn = document.getElementById("update-action-btn");
+    const updateDismissBtn = document.getElementById("update-dismiss-btn");
+
+    function showUpdateBanner(message, actionText, actionHandler) {
+      updateMessage.textContent = message;
+      updateBanner.classList.remove("hidden");
+      updateBanner.classList.add("flex");
+
+      if (actionText && actionHandler) {
+        updateActionBtn.textContent = actionText;
+        updateActionBtn.classList.remove("hidden");
+        updateActionBtn.onclick = actionHandler;
+      } else {
+        updateActionBtn.classList.add("hidden");
+      }
+    }
+
+    function hideUpdateBanner() {
+      updateBanner.classList.add("hidden");
+      updateBanner.classList.remove("flex");
+    }
+
+    updateDismissBtn.addEventListener("click", hideUpdateBanner);
+
+    window.API.onUpdateStatus((status, data) => {
+      switch (status) {
+        case "update-available":
+          showUpdateBanner(
+            `Update v${data.version} is available!`,
+            "Download",
+            () => {
+              window.API.downloadUpdate();
+              updateActionBtn.classList.add("hidden");
+              updateMessage.textContent = "Starting download...";
+            },
+          );
+          break;
+        case "download-progress":
+          showUpdateBanner(
+            `Downloading update... ${Math.round(data.percent)}%`,
+            null,
+            null,
+          );
+          break;
+        case "update-downloaded":
+          showUpdateBanner(
+            "Update downloaded. Restart to install.",
+            "Restart Now",
+            () => window.API.installUpdate(),
+          );
+          break;
+        case "update-error":
+          console.error("Update error:", data);
+          break;
+      }
+    });
   } catch (error) {
     console.error("Error initializing OmegaHH42:", error);
   }

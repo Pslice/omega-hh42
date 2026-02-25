@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, Menu } = require("electron");
 const path = require("node:path");
+const { autoUpdater } = require("electron-updater");
 const OmegaHH42 = require("./device/hh42");
 const createMenuTemplate = require("./menu");
 const TemperatureDatabase = require("./database");
@@ -26,6 +27,69 @@ const createWindow = () => {
   mainWindow.hh42 = hh42;
 };
 
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("checking-for-update", () => {
+    sendUpdateStatus("checking-for-update");
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    sendUpdateStatus("update-available", info);
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    sendUpdateStatus("update-not-available");
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    sendUpdateStatus("download-progress", progress);
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    sendUpdateStatus("update-downloaded", info);
+  });
+
+  autoUpdater.on("error", (error) => {
+    sendUpdateStatus("update-error", error?.message || "Unknown error");
+  });
+
+  ipcMain.handle("check-for-updates", async () => {
+    try {
+      return await autoUpdater.checkForUpdates();
+    } catch (error) {
+      console.error("Error checking for updates:", error);
+      return null;
+    }
+  });
+
+  ipcMain.handle("download-update", async () => {
+    try {
+      await autoUpdater.downloadUpdate();
+    } catch (error) {
+      console.error("Error downloading update:", error);
+    }
+  });
+
+  ipcMain.handle("install-update", () => {
+    autoUpdater.quitAndInstall(false, true);
+  });
+
+  // Check for updates after a short delay
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.error("Auto update check failed:", err);
+    });
+  }, 3000);
+}
+
+function sendUpdateStatus(status, data) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("update-status", status, data);
+  }
+}
+
 app.whenReady().then(async () => {
   // Initialize the temperature database
   temperatureDb = new TemperatureDatabase();
@@ -43,6 +107,7 @@ app.whenReady().then(async () => {
   });
   setupIpcHandlersTemperature();
   setupIpcHandlersDatabase();
+  setupAutoUpdater();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

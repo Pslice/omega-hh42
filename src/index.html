@@ -11,6 +11,26 @@
         <script src="plotly.min.js"></script>
     </head>
     <body class="h-screen overflow-hidden bg-slate-900 text-slate-100">
+        <!-- Update notification banner -->
+        <div
+            id="update-banner"
+            class="fixed inset-x-0 top-0 z-50 hidden items-center justify-center gap-3 bg-blue-600 px-4 py-2 text-sm text-white shadow-lg"
+        >
+            <span id="update-message">A new update is available!</span>
+            <button
+                id="update-action-btn"
+                class="hidden rounded bg-white px-3 py-1 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50"
+            >
+                Download
+            </button>
+            <button
+                id="update-dismiss-btn"
+                class="rounded px-2 py-1 text-xs text-blue-200 transition-colors hover:text-white"
+            >
+                Dismiss
+            </button>
+        </div>
+
         <!-- Draggable title bar -->
         <div class="draggable fixed inset-x-0 top-0 h-8 bg-slate-950"></div>
 

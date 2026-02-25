@@ -1,0 +1,53 @@
+appId: com.patrickcool.omegahh42
+productName: omegahh42
+directories:
+  buildResources: build
+  output: dist
+files:
+  - src/**/*
+  - '!src/temperatures.db'
+asarUnpack:
+  - node_modules/serialport/**
+  - node_modules/@serialport/**
+  - node_modules/sqlite3/**
+  - node_modules/bindings/**
+  - node_modules/file-uri-to-path/**
+  - node_modules/node-addon-api/**
+  - node_modules/prebuild-install/**
+  - node_modules/node-gyp-build/**
+win:
+  executableName: omegahh42
+  icon: src/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+mac:
+  icon: src/icon.icns
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+linux:
+  icon: src/icon.png
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+publish:
+  provider: github
+  owner: Pslice
+  repo: omega-hh42

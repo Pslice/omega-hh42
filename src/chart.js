@@ -108,7 +108,7 @@ window.API.onSerialData((data, unit) => {
   handleTemperatureData(data, unit);
 });
 
-// Listen for simulated temperature data (always Celsius)
+// Listen for simulated temperature data
 window.addEventListener("simulatedTemperature", (e) => {
-  handleTemperatureData(e.detail, "C");
+  handleTemperatureData(e.detail.temp, e.detail.unit);
 });
