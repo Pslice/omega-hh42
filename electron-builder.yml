@@ -6,6 +6,10 @@ directories:
   buildResources: build
   output: dist
 
+# Ad-hoc signs the macOS app, which packaging leaves with an invalid signature.
+# See the comments in the script itself.
+afterPack: build/after-pack.js
+
 files:
   - src/**/*
   - package.json
@@ -25,7 +29,16 @@ asarUnpack:
   - node_modules/node-addon-api/**
   - node_modules/node-gyp-build/**
 
-npmRebuild: true
+# Both native dependencies ship N-API prebuilds, which are ABI-stable across
+# Node and Electron versions: @serialport/bindings-cpp carries a universal
+# darwin-x64+arm64 binary, and sqlite3 declares napi_versions [3, 6] and
+# fetches a per-arch prebuild during install. Rebuilding them from source is
+# therefore pure risk - on macOS @electron/rebuild's node-gyp worker hung
+# indefinitely on the serialport step - so use what npm installed.
+#
+# This is only safe because each platform's installer is built on that
+# platform (see README): a cross-arch build would package the host's binary.
+npmRebuild: false
 
 win:
   executableName: OmegaHH42
@@ -57,10 +70,15 @@ mac:
   target:
     # zip alongside dmg: electron-updater cannot apply a differential update
     # from a dmg, so omitting it breaks auto-update on macOS.
+    #
+    # arch is deliberately not pinned. With npmRebuild disabled the packaged
+    # native modules are whatever npm installed for *this* machine, so listing
+    # [x64, arm64] made an Apple Silicon host emit an x64 bundle containing an
+    # arm64 sqlite3 - which crashes on first database access, i.e. at startup.
+    # Defaulting to the host arch keeps binaries and bundle in agreement; CI
+    # builds each arch on its own native runner.
     - target: dmg
-      arch: [x64, arm64]
     - target: zip
-      arch: [x64, arm64]
 
 linux:
   icon: src/icon.png
