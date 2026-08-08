@@ -121,18 +121,29 @@ npm run dist:linux # AppImage + deb     -> dist/
 ### Cross-platform builds
 
 `serialport` and `sqlite3` are native modules, so **each platform's installer
-must be produced on that platform.** Running `npm run dist:mac` on Windows
-produces a bundle containing Windows `.node` binaries, which fails at runtime
-the moment the app touches the serial port or the database.
+must be produced on that platform** — and on macOS, on that *architecture*.
+Running `npm run dist:mac` on Windows produces a bundle containing Windows
+`.node` binaries, which fails at runtime the moment the app touches the serial
+port or the database. The same trap exists between the two Mac architectures:
+an x64 bundle built on Apple Silicon carries an arm64 `sqlite3` and dies at
+startup, where the database is opened. `dist:mac` therefore builds only the
+host's architecture.
 
-`.github/workflows/build.yml` builds all three on native GitHub Actions runners.
-Push a `v*` tag, or trigger it manually from the Actions tab, and the installers
-appear as workflow artifacts.
+Neither module is compiled locally. Both ship N-API prebuilds, which are
+ABI-stable across Node and Electron, so `npmRebuild` is off and no Python or
+C++ toolchain is needed to build the app.
+
+`.github/workflows/build.yml` builds all four targets — Windows x64, macOS
+arm64, macOS x64 and Linux x64 — each on its own native runner. Push a `v*`
+tag and the installers are uploaded to a **draft** GitHub release; review it
+and press Publish. Triggering the workflow manually from the Actions tab
+builds without releasing, attaching the installers to the run instead.
 
 ### macOS security note
 
-The app is not signed with an Apple Developer certificate, so on first launch
-right-click it and choose **Open**, then **Open** again in the dialog.
+The app is ad-hoc signed, not signed with an Apple Developer certificate, and
+is not notarised. On first launch right-click it and choose **Open**, then
+**Open** again in the dialog.
 
 ## Device protocol
 

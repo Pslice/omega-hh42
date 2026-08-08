@@ -94,3 +94,7 @@ publish:
   provider: github
   owner: Pslice
   repo: omega-hh42
+  # Four runners upload into the same release. Draft keeps it invisible until
+  # every platform has finished, so nobody downloads a release that is missing
+  # three of its four installers; publish it by hand once the run is green.
+  releaseType: draft

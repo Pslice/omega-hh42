@@ -1,7 +1,7 @@
 {
   "name": "omegahh42",
   "productName": "OmegaHH42",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Omega HH42 Thermocouple Thermometer Interface",
   "main": "src/index.js",
   "scripts": {
@@ -10,7 +10,6 @@
     "build:css": "tailwindcss -i ./src/input.css -o ./src/output.css --minify",
     "watch:css": "tailwindcss -i ./src/input.css -o ./src/output.css --watch",
     "build": "npm run build:css",
-    "postinstall": "electron-builder install-app-deps",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
@@ -19,7 +18,7 @@
     "build:win": "npm run dist:win",
     "build:mac": "npm run dist:mac",
     "build:linux": "npm run dist:linux",
-    "test": "node --test test/*.test.js",
+    "test": "node --test \"test/*.test.js\"",
     "diagnose": "node scripts/diagnose.js",
     "lint": "echo \"No linting configured\""
   },
