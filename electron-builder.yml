@@ -1,11 +1,21 @@
 appId: com.patrickcool.omegahh42
-productName: omegahh42
+productName: OmegaHH42
+copyright: Copyright © 2026 Patrick Cool
+
 directories:
   buildResources: build
   output: dist
+
 files:
   - src/**/*
+  - package.json
+  # Build inputs that the packaged app never reads.
+  - '!src/input.css'
   - '!src/temperatures.db'
+
+# serialport and sqlite3 load .node binaries at runtime, which cannot be read
+# from inside app.asar. These must stay unpacked or the app throws
+# "Cannot find module" on first serial/database access in a packaged build.
 asarUnpack:
   - node_modules/serialport/**
   - node_modules/@serialport/**
@@ -13,15 +23,18 @@ asarUnpack:
   - node_modules/bindings/**
   - node_modules/file-uri-to-path/**
   - node_modules/node-addon-api/**
-  - node_modules/prebuild-install/**
   - node_modules/node-gyp-build/**
+
+npmRebuild: true
+
 win:
-  executableName: omegahh42
+  executableName: OmegaHH42
   icon: src/icon.ico
   target:
     - target: nsis
       arch:
         - x64
+
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -29,24 +42,36 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  # The temperature database lives in %APPDATA%; keep it across upgrades and
+  # uninstalls so a reinstall does not silently discard logged data.
   deleteAppDataOnUninstall: false
+
 mac:
   icon: src/icon.icns
+  category: public.app-category.utilities
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   target:
+    # zip alongside dmg: electron-updater cannot apply a differential update
+    # from a dmg, so omitting it breaks auto-update on macOS.
     - target: dmg
-      arch:
-        - x64
-        - arm64
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+
 linux:
   icon: src/icon.png
+  category: Utility
+  synopsis: Omega HH42 thermocouple thermometer interface
   target:
     - target: AppImage
-      arch:
-        - x64
+      arch: [x64]
     - target: deb
-      arch:
-        - x64
+      arch: [x64]
+
 publish:
   provider: github
   owner: Pslice

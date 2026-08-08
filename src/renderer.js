@@ -1,317 +1,468 @@
-import { getTemperatures } from "./db.js";
+import { initChart, addReading, setChartUnit, clearChart } from "./chart.js";
 
-let simulationInterval = null;
-let simulationUnit = "C";
+/**
+ * Single entry point for the renderer. It owns the reading pipeline:
+ *
+ *   source (device or simulator) -> display -> chart -> optional DB write
+ *
+ * Database writes are opt-in. The previous build recorded every reading
+ * automatically from inside chart.js, which meant simply opening the app
+ * started writing a row per second - including simulated data.
+ */
 
-function celsiusToFahrenheit(celsius) {
-  return parseFloat(((celsius * 9) / 5 + 32).toFixed(1));
+const SIMULATE = "simulate";
+
+/** Options for the "Log every" selector, in milliseconds. 0 = every reading. */
+const LOG_INTERVALS = [
+  { label: "Every reading", value: 0 },
+  { label: "1 second", value: 1000 },
+  { label: "5 seconds", value: 5000 },
+  { label: "30 seconds", value: 30000 },
+  { label: "1 minute", value: 60000 },
+  { label: "5 minutes", value: 300000 },
+];
+
+/** Rows fetched into the data modal at once. */
+const TABLE_PAGE_SIZE = 500;
+
+const el = (id) => document.getElementById(id);
+
+// Drives the platform-conditional title bar rules in input.css.
+document.documentElement.classList.add(`platform-${window.API.platform}`);
+
+const state = {
+  unit: "C",
+  logging: false,
+  logIntervalMs: 0,
+  lastLoggedAt: 0,
+  simulationTimer: null,
+  connecting: false,
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  main().catch((error) => {
+    console.error("Error initializing OmegaHH42:", error);
+    setStatus("error", cleanIpcError(error));
+  });
+});
+
+async function main() {
+  await initChart();
+  setupLoggingControls();
+  setupDataModal();
+  setupUpdateBanner();
+  subscribeToDevice();
+
+  await populatePorts();
+  el("refresh-ports-button").addEventListener("click", refreshPorts);
+  el("portSelect").addEventListener("change", handlePortChange);
+
+  // Start in simulation so the UI is alive before any hardware is attached.
+  await handlePortChange();
 }
+
+// --- readings -----------------------------------------------------------
+
+function handleReading(value, unit, timestamp) {
+  if (unit && unit !== state.unit) {
+    state.unit = unit;
+    setChartUnit(unit);
+  }
+
+  el("temperature").textContent = value.toFixed(2);
+  el("unit").textContent = `°${state.unit}`;
+  addReading(value, timestamp);
+
+  maybeLog(value, timestamp);
+}
+
+function maybeLog(value, timestamp) {
+  if (!state.logging) return;
+
+  const now = new Date(timestamp).getTime();
+  if (state.logIntervalMs > 0 && now - state.lastLoggedAt < state.logIntervalMs) {
+    return;
+  }
+  state.lastLoggedAt = now;
+
+  window.API.db.record(value, state.unit, timestamp).catch((error) => {
+    console.error("Failed to record temperature:", error);
+    setLogging(false);
+    setStatus("error", `Logging stopped: ${cleanIpcError(error)}`);
+  });
+}
+
+function subscribeToDevice() {
+  // Subscribed exactly once, at startup. Re-subscribing per port change was
+  // what caused duplicate readings after switching ports.
+  window.API.device.onReading(({ value, unit, timestamp }) =>
+    handleReading(value, unit, timestamp),
+  );
+
+  window.API.device.onOutOfRange(({ direction }) => {
+    el("temperature").textContent = direction === "under" ? "LO" : "HI";
+    setStatus("warn", `Probe reading is ${direction} range`);
+  });
+
+  window.API.device.onUnitChange((unit) => {
+    state.unit = unit;
+    setChartUnit(unit);
+    el("unit").textContent = `°${unit}`;
+  });
+
+  window.API.device.onStatus((status) => {
+    switch (status.state) {
+      case "connecting":
+        setStatus("pending", `Connecting to ${status.port}...`);
+        break;
+      case "connected":
+        setStatus("ok", `Connected to ${status.port}`);
+        break;
+      case "disconnected":
+        setStatus("warn", "Device disconnected");
+        break;
+      case "stalled":
+        setStatus("warn", status.message);
+        break;
+      case "error":
+        setStatus("error", status.message);
+        break;
+    }
+  });
+}
+
+// --- simulation ---------------------------------------------------------
 
 function startSimulation() {
   let baseTemp = 22.0;
   let trend = 0;
 
-  simulationInterval = setInterval(() => {
-    // Random walk with slight trend changes
-    trend += (Math.random() - 0.5) * 0.1;
-    trend = Math.max(-0.5, Math.min(0.5, trend));
+  state.simulationTimer = setInterval(() => {
+    trend = clamp(trend + (Math.random() - 0.5) * 0.1, -0.5, 0.5);
+    baseTemp = clamp(baseTemp + trend + (Math.random() - 0.5) * 0.3, 15, 35);
 
-    const noise = (Math.random() - 0.5) * 0.3;
-    baseTemp += trend + noise;
-
-    // Keep temperature in realistic range
-    baseTemp = Math.max(15, Math.min(35, baseTemp));
-
-    const simulatedTempCelsius = parseFloat(baseTemp.toFixed(1));
-    const simulatedTemp =
-      simulationUnit === "F"
-        ? celsiusToFahrenheit(simulatedTempCelsius)
-        : simulatedTempCelsius;
-
-    // Dispatch custom event for simulated data
-    window.dispatchEvent(
-      new CustomEvent("simulatedTemperature", {
-        detail: { temp: simulatedTemp, unit: simulationUnit },
-      }),
-    );
+    const celsius = Number(baseTemp.toFixed(2));
+    const value = state.unit === "F" ? celsius * 1.8 + 32 : celsius;
+    handleReading(Number(value.toFixed(2)), state.unit, new Date().toISOString());
   }, 1000);
 }
 
 function stopSimulation() {
-  if (simulationInterval) {
-    clearInterval(simulationInterval);
-    simulationInterval = null;
+  if (state.simulationTimer) {
+    clearInterval(state.simulationTimer);
+    state.simulationTimer = null;
   }
 }
 
-function formatTimestamp(timestamp) {
-  const date = new Date(timestamp);
-  return date.toLocaleString();
+// --- ports --------------------------------------------------------------
+
+async function populatePorts() {
+  const portSelect = el("portSelect");
+  const previous = portSelect.value;
+  portSelect.replaceChildren();
+
+  portSelect.appendChild(new Option("Simulate", SIMULATE));
+
+  const ports = await window.API.device.listPorts();
+  // Every serial port is listed. Filtering on `manufacturer === "FTDI"` hid
+  // the device on any machine whose cable used a Prolific, CP210x or CH340
+  // bridge, or where Windows reported the driver vendor instead.
+  const likely = ports.filter((p) => p.likely);
+  const rest = ports.filter((p) => !p.likely);
+
+  for (const port of [...likely, ...rest]) {
+    portSelect.appendChild(new Option(port.label, port.path));
+  }
+
+  if ([...portSelect.options].some((o) => o.value === previous)) {
+    portSelect.value = previous;
+  }
+  return ports.length;
 }
 
-function renderTable(data, tableElement) {
-  if (!data || data.length === 0) {
-    tableElement.innerHTML = `
-      <tbody>
-        <tr>
-          <td class="p-4 text-center text-slate-500">No temperature data recorded yet</td>
-        </tr>
-      </tbody>
-    `;
+async function refreshPorts() {
+  const button = el("refresh-ports-button");
+  button.classList.add("animate-spin");
+  try {
+    const count = await populatePorts();
+    if (count === 0) setStatus("warn", "No serial ports found");
+  } finally {
+    setTimeout(() => button.classList.remove("animate-spin"), 300);
+  }
+}
+
+async function handlePortChange() {
+  const selected = el("portSelect").value;
+
+  stopSimulation();
+  clearChart();
+  el("temperature").textContent = "--";
+
+  if (selected === SIMULATE) {
+    // Release the hardware; previously selecting Simulate left the serial
+    // port open and both sources fed the chart at once.
+    await window.API.device.disconnect().catch(() => {});
+    setStatus("sim", "Simulation mode");
+    startSimulation();
     return;
   }
 
-  const headerRow = `
-    <thead class="sticky top-0 bg-slate-800 text-slate-300">
-      <tr>
-        <th class="px-4 py-3 font-medium">ID</th>
-        <th class="px-4 py-3 font-medium">Temperature</th>
-        <th class="px-4 py-3 font-medium">Unit</th>
-        <th class="px-4 py-3 font-medium">Timestamp</th>
-      </tr>
-    </thead>
-  `;
-
-  const rows = data
-    .map(
-      (row) => `
-    <tr class="border-t border-slate-700/50 hover:bg-slate-800/50">
-      <td class="px-4 py-2 tabular-nums">${row.id}</td>
-      <td class="px-4 py-2 tabular-nums">${row.temperature_value}</td>
-      <td class="px-4 py-2">${row.temperature_unit}</td>
-      <td class="px-4 py-2 tabular-nums">${formatTimestamp(row.timestamp)}</td>
-    </tr>
-  `,
-    )
-    .join("");
-
-  tableElement.innerHTML = `${headerRow}<tbody>${rows}</tbody>`;
+  state.connecting = true;
+  setStatus("pending", `Connecting to ${selected}...`);
+  try {
+    await window.API.device.connect(selected);
+  } catch (error) {
+    setStatus("error", cleanIpcError(error));
+  } finally {
+    state.connecting = false;
+  }
 }
 
-function exportToCsv(data) {
-  if (!data || data.length === 0) {
-    return;
+/**
+ * Electron wraps a rejected handler as
+ * "Error invoking remote method 'x': Error: <real message>". Strip both layers
+ * so the status line shows only the message the driver produced.
+ */
+function cleanIpcError(error) {
+  return String(error?.message || error)
+    .replace(/^Error invoking remote method '[^']*':\s*/, "")
+    .replace(/^(?:Error|TypeError):\s*/, "");
+}
+
+// --- logging controls ---------------------------------------------------
+
+function setupLoggingControls() {
+  const select = el("log-interval");
+  for (const option of LOG_INTERVALS) {
+    select.appendChild(new Option(option.label, String(option.value)));
   }
-
-  const headers = ["id", "temperature_value", "temperature_unit", "timestamp"];
-  const csvRows = [headers.join(",")];
-
-  data.forEach((row) => {
-    const values = [
-      row.id,
-      row.temperature_value,
-      row.temperature_unit,
-      row.timestamp,
-    ];
-    csvRows.push(values.join(","));
+  select.value = "0";
+  select.addEventListener("change", () => {
+    state.logIntervalMs = Number(select.value);
+    state.lastLoggedAt = 0;
   });
 
-  const csvContent = csvRows.join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", `temperatures_${Date.now()}.csv`);
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  el("log-toggle").addEventListener("click", () => setLogging(!state.logging));
+  setLogging(false);
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  try {
-    const dbViewButton = document.getElementById("db-view-button");
-    const dbExportButton = document.getElementById("db-export-button");
-    const dbTable = document.getElementById("db-table");
-    const dbRecordCount = document.getElementById("db-record-count");
+function setLogging(enabled) {
+  state.logging = enabled;
+  state.lastLoggedAt = 0;
 
-    const portSelect = document.getElementById("portSelect");
-    const refreshPortsButton = document.getElementById("refresh-ports-button");
-    const temperature = document.getElementById("temperature");
-    const unit = document.getElementById("unit");
+  const button = el("log-toggle");
+  button.textContent = enabled ? "Stop Logging" : "Start Logging";
+  button.classList.toggle("bg-red-600", enabled);
+  button.classList.toggle("hover:bg-red-500", enabled);
+  button.classList.toggle("bg-emerald-600", !enabled);
+  button.classList.toggle("hover:bg-emerald-500", !enabled);
+  el("log-indicator").classList.toggle("hidden", !enabled);
+}
 
-    async function populatePorts() {
-      const currentValue = portSelect.value;
+// --- data modal ---------------------------------------------------------
 
-      // Clear existing options
-      portSelect.innerHTML = "";
+function setupDataModal() {
+  const modal = el("db-table-container-modal");
+  const closeButton = el("modal-close");
 
-      // Add simulate option first
-      const simulateOption = document.createElement("option");
-      simulateOption.value = "simulate";
-      simulateOption.textContent = "Simulate";
-      portSelect.appendChild(simulateOption);
+  const open = async () => {
+    modal.classList.remove("hidden");
+    requestAnimationFrame(() => modal.classList.add("opacity-100"));
+    await loadTable();
+  };
 
-      const ports = await window.API.getPorts();
-      ports.forEach((port) => {
-        const option = document.createElement("option");
-        option.value = port;
-        option.textContent = port;
-        portSelect.appendChild(option);
-      });
+  const close = () => {
+    modal.classList.remove("opacity-100");
+    setTimeout(() => modal.classList.add("hidden"), 300);
+  };
 
-      // Restore previous selection if still available
-      if (
-        currentValue &&
-        [...portSelect.options].some((opt) => opt.value === currentValue)
-      ) {
-        portSelect.value = currentValue;
+  el("db-view-button").addEventListener("click", open);
+  closeButton.addEventListener("click", close);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) close();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.classList.contains("hidden")) close();
+  });
+
+  el("db-export-button").addEventListener("click", async () => {
+    const button = el("db-export-button");
+    button.disabled = true;
+    try {
+      // Exporting from the main process writes the full table to a location
+      // the user picks, rather than the browser dumping a blob of whatever
+      // happened to be cached in the modal.
+      const result = await window.API.db.exportCsv();
+      if (!result.canceled) {
+        setModalNote(`Exported ${result.count} rows to ${result.filePath}`);
       }
+    } catch (error) {
+      setModalNote(`Export failed: ${cleanIpcError(error)}`, true);
+    } finally {
+      button.disabled = false;
     }
+  });
 
-    await populatePorts();
-
-    refreshPortsButton.addEventListener("click", async () => {
-      refreshPortsButton.classList.add("animate-spin");
-      await populatePorts();
-      setTimeout(() => {
-        refreshPortsButton.classList.remove("animate-spin");
-      }, 300);
-    });
-
-    function updateTemperatureDisplay(data, unitChar) {
-      temperature.textContent = data;
-      unit.textContent = unitChar === "F" ? "°F" : "°C";
+  el("db-reset-button").addEventListener("click", async () => {
+    if (
+      !confirm(
+        "Delete all temperature records? This cannot be undone.\n\nExport first if you need the data.",
+      )
+    ) {
+      return;
     }
+    await window.API.db.clear();
+    await loadTable();
+    setModalNote("All records deleted.");
+  });
+}
 
-    // Listen for simulated temperature events
-    window.addEventListener("simulatedTemperature", (e) => {
-      updateTemperatureDisplay(e.detail.temp, e.detail.unit);
-    });
+async function loadTable() {
+  const table = el("db-table");
+  const [rows, total] = await Promise.all([
+    window.API.db.list({ limit: TABLE_PAGE_SIZE }),
+    window.API.db.count(),
+  ]);
 
-    // Listen for temperature unit changes from the menu
-    window.API.onSetCelsiusMode(() => {
-      simulationUnit = "C";
-    });
+  renderTable(rows, table);
+  el("db-record-count").textContent =
+    total > rows.length
+      ? `Showing ${rows.length} of ${total} records`
+      : `${total} record${total === 1 ? "" : "s"}`;
+  setModalNote("");
+}
 
-    window.API.onSetFahrenheitMode(() => {
-      simulationUnit = "F";
-    });
+function renderTable(rows, table) {
+  table.replaceChildren();
 
-    portSelect.addEventListener("change", async () => {
-      console.log("port changed");
-      stopSimulation();
-
-      if (portSelect.value === "simulate") {
-        startSimulation();
-      } else {
-        await window.API.updatePort(portSelect.value);
-        await window.API.onSerialData(updateTemperatureDisplay);
-      }
-    });
-
-    portSelect.dispatchEvent(new Event("change"));
-
-    const modal = document.getElementById("db-table-container-modal");
-    const modalClose = document.getElementById("modal-close");
-
-    let cachedData = [];
-
-    dbViewButton.addEventListener("click", async () => {
-      modal.classList.remove("hidden");
-      setTimeout(() => {
-        modal.classList.add("opacity-100");
-      }, 10);
-
-      // Load and display data
-      cachedData = await getTemperatures();
-      renderTable(cachedData, dbTable);
-      dbRecordCount.textContent = `${cachedData.length} records`;
-    });
-
-    modalClose.addEventListener("click", () => {
-      modal.classList.remove("opacity-100");
-      setTimeout(() => {
-        modal.classList.add("hidden");
-      }, 300);
-    });
-
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        modalClose.click();
-      }
-    });
-
-    dbExportButton.addEventListener("click", () => {
-      exportToCsv(cachedData);
-    });
-
-    const dbResetButton = document.getElementById("db-reset-button");
-    dbResetButton.addEventListener("click", async () => {
-      if (
-        confirm(
-          "Are you sure you want to delete all temperature records? This cannot be undone.",
-        )
-      ) {
-        await window.API.resetDatabase();
-        cachedData = [];
-        renderTable(cachedData, dbTable);
-        dbRecordCount.textContent = "0 records";
-      }
-    });
-
-    // Auto-updater UI
-    const updateBanner = document.getElementById("update-banner");
-    const updateMessage = document.getElementById("update-message");
-    const updateActionBtn = document.getElementById("update-action-btn");
-    const updateDismissBtn = document.getElementById("update-dismiss-btn");
-
-    function showUpdateBanner(message, actionText, actionHandler) {
-      updateMessage.textContent = message;
-      updateBanner.classList.remove("hidden");
-      updateBanner.classList.add("flex");
-
-      if (actionText && actionHandler) {
-        updateActionBtn.textContent = actionText;
-        updateActionBtn.classList.remove("hidden");
-        updateActionBtn.onclick = actionHandler;
-      } else {
-        updateActionBtn.classList.add("hidden");
-      }
-    }
-
-    function hideUpdateBanner() {
-      updateBanner.classList.add("hidden");
-      updateBanner.classList.remove("flex");
-    }
-
-    updateDismissBtn.addEventListener("click", hideUpdateBanner);
-
-    window.API.onUpdateStatus((status, data) => {
-      switch (status) {
-        case "update-available":
-          showUpdateBanner(
-            `Update v${data.version} is available!`,
-            "Download",
-            () => {
-              window.API.downloadUpdate();
-              updateActionBtn.classList.add("hidden");
-              updateMessage.textContent = "Starting download...";
-            },
-          );
-          break;
-        case "download-progress":
-          showUpdateBanner(
-            `Downloading update... ${Math.round(data.percent)}%`,
-            null,
-            null,
-          );
-          break;
-        case "update-downloaded":
-          showUpdateBanner(
-            "Update downloaded. Restart to install.",
-            "Restart Now",
-            () => window.API.installUpdate(),
-          );
-          break;
-        case "update-error":
-          console.error("Update error:", data);
-          break;
-      }
-    });
-  } catch (error) {
-    console.error("Error initializing OmegaHH42:", error);
+  if (!rows.length) {
+    const body = table.createTBody();
+    const cell = body.insertRow().insertCell();
+    cell.className = "p-6 text-center text-slate-500";
+    cell.textContent = "No temperature data recorded yet";
+    return;
   }
-});
+
+  const head = table.createTHead();
+  head.className = "sticky top-0 bg-slate-800 text-slate-300";
+  const headRow = head.insertRow();
+  for (const label of ["ID", "Temperature", "Unit", "Timestamp"]) {
+    const th = document.createElement("th");
+    th.className = "px-4 py-3 text-left font-medium";
+    th.textContent = label;
+    headRow.appendChild(th);
+  }
+
+  // Built with DOM nodes rather than an innerHTML template so stored values
+  // can never be interpreted as markup.
+  const body = table.createTBody();
+  for (const row of rows) {
+    const tr = body.insertRow();
+    tr.className = "border-t border-slate-700/50 hover:bg-slate-800/50";
+    addCell(tr, row.id, "tabular-nums");
+    addCell(tr, row.value, "tabular-nums");
+    addCell(tr, `°${row.unit}`);
+    addCell(tr, formatTimestamp(row.timestamp), "tabular-nums");
+  }
+}
+
+function addCell(row, value, extraClass = "") {
+  const cell = row.insertCell();
+  cell.className = `px-4 py-2 ${extraClass}`.trim();
+  cell.textContent = String(value);
+}
+
+function setModalNote(message, isError = false) {
+  const note = el("db-note");
+  note.textContent = message;
+  note.classList.toggle("text-red-400", isError);
+  note.classList.toggle("text-slate-400", !isError);
+}
+
+/**
+ * Timestamps arrive as ISO-8601 UTC. Handing a "YYYY-MM-DD HH:MM:SS" string
+ * (what SQLite's CURRENT_TIMESTAMP produced before) straight to `new Date()`
+ * made the browser read UTC values as local time, shifting every displayed
+ * row by the machine's UTC offset.
+ */
+function formatTimestamp(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+// --- status + updates ---------------------------------------------------
+
+const STATUS_COLORS = {
+  ok: "bg-emerald-500",
+  sim: "bg-sky-500",
+  pending: "bg-amber-500",
+  warn: "bg-amber-500",
+  error: "bg-red-500",
+};
+
+function setStatus(kind, message) {
+  const dot = el("status-dot");
+  dot.className = `h-2.5 w-2.5 shrink-0 rounded-full ${STATUS_COLORS[kind] || "bg-slate-500"}`;
+  const text = el("status-text");
+  text.textContent = message;
+  text.title = message;
+}
+
+function setupUpdateBanner() {
+  const banner = el("update-banner");
+  const message = el("update-message");
+  const actionButton = el("update-action-btn");
+
+  const show = (text, actionLabel, handler) => {
+    message.textContent = text;
+    banner.classList.remove("hidden");
+    banner.classList.add("flex");
+    if (actionLabel && handler) {
+      actionButton.textContent = actionLabel;
+      actionButton.classList.remove("hidden");
+      actionButton.onclick = handler;
+    } else {
+      actionButton.classList.add("hidden");
+    }
+  };
+
+  el("update-dismiss-btn").addEventListener("click", () => {
+    banner.classList.add("hidden");
+    banner.classList.remove("flex");
+  });
+
+  window.API.updates.onStatus((status, data) => {
+    switch (status) {
+      case "available":
+        show(`Update v${data.version} is available`, "Download", () => {
+          window.API.updates.download();
+          actionButton.classList.add("hidden");
+          message.textContent = "Starting download...";
+        });
+        break;
+      case "progress":
+        show(`Downloading update... ${Math.round(data.percent)}%`);
+        break;
+      case "downloaded":
+        show("Update downloaded. Restart to install.", "Restart Now", () =>
+          window.API.updates.install(),
+        );
+        break;
+      case "error":
+        console.error("Update error:", data);
+        break;
+    }
+  });
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}

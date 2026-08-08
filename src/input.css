@@ -7,11 +7,25 @@
         -webkit-app-region: drag;
     }
 
+    /* Interactive elements inside a draggable strip must opt back out, or the
+       window drag swallows their clicks. */
     .no-drag {
         -webkit-app-region: no-drag;
     }
 
-    .modal-open {
-        overflow: hidden;
+    /* The custom title bar only exists on macOS, where `titleBarStyle:
+       "hiddenInset"` hides the caption bar. Windows and Linux keep their
+       native frame, so the strip and its top padding are hidden there.
+       `platform-*` is set on <html> by renderer.js. */
+    .mac-only {
+        display: none;
+    }
+
+    .platform-darwin .mac-only {
+        display: block;
+    }
+
+    .platform-darwin .mac-inset {
+        padding-top: 2.25rem;
     }
 }

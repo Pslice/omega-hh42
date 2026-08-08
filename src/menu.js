@@ -1,9 +1,24 @@
 const { app } = require("electron");
+
 const isMac = process.platform === "darwin";
 
-const createMenuTemplate = (mainWindow) => {
+/**
+ * @param {object} actions
+ * @param {(unit: "C"|"F") => void} actions.onSetUnit
+ * @param {() => "C"|"F"} actions.getUnit
+ * @param {() => void} actions.onOpenDataFolder
+ */
+const createMenuTemplate = ({ onSetUnit, getUnit, onOpenDataFolder }) => {
+  const unitItem = (label, unit) => ({
+    label,
+    // Radio items keep the menu in sync with the scale the meter reports,
+    // which the previous plain click-handlers could not show.
+    type: "radio",
+    checked: getUnit() === unit,
+    click: () => onSetUnit(unit),
+  });
+
   return [
-    // App Menu (macOS only)
     ...(isMac
       ? [
           {
@@ -23,53 +38,35 @@ const createMenuTemplate = (mainWindow) => {
         ]
       : []),
 
-    // File Menu
     {
       label: "File",
       submenu: [
         {
           label: "Temperature Units",
-          submenu: [
-            {
-              label: "Celsius",
-              click: () => {
-                // Send to renderer for simulation mode
-                mainWindow.webContents.send("setCelsiusMode");
-                // Send to device for real hardware mode
-                if (mainWindow.hh42) {
-                  mainWindow.hh42.setCelsiusMode();
-                }
-              },
-            },
-            {
-              label: "Fahrenheit",
-              click: () => {
-                // Send to renderer for simulation mode
-                mainWindow.webContents.send("setFahrenheitMode");
-                // Send to device for real hardware mode
-                if (mainWindow.hh42) {
-                  mainWindow.hh42.setFahrenheitMode();
-                }
-              },
-            },
-          ],
+          submenu: [unitItem("Celsius", "C"), unitItem("Fahrenheit", "F")],
         },
+        { type: "separator" },
+        { label: "Open Data Folder", click: onOpenDataFolder },
         { type: "separator" },
         isMac ? { role: "close" } : { role: "quit" },
       ],
     },
 
-    // View Menu
     {
       label: "View",
       submenu: [
         { role: "reload" },
         { role: "forceReload" },
         { role: "toggleDevTools" },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
       ],
     },
 
-    // Window Menu
     {
       label: "Window",
       submenu: [

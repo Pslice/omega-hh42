@@ -1,23 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // renderer.js toggles utility classes at runtime, so JS files must be
+  // scanned too or those classes get purged from the build.
   content: ["./src/**/*.{html,js}"],
   theme: {
-    extend: {
-      textShadow: {
-        'outline': '-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff',
-      },
-    },
+    extend: {},
   },
-  plugins: [
-    require('tailwindcss'),
-    require('autoprefixer'),
-    function ({ addUtilities }) {
-      const newUtilities = {
-        '.text-outline': {
-          'text-shadow': '-0.2px -0.2px 1px #fff, 0.2px -0.2px 1px #fff, -0.2px 0.2px 1px #fff, 0.2px 0.2px 1px #fff',
-        },
-      }
-      addUtilities(newUtilities)
-    },
-  ],
-}
+  // `tailwindcss` and `autoprefixer` are PostCSS plugins, not Tailwind
+  // plugins; listing them here (as this file used to) made Tailwind try to
+  // load itself as one of its own extensions.
+  plugins: [],
+};

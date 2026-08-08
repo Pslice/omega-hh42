@@ -1,21 +1,36 @@
 {
   "name": "omegahh42",
-  "productName": "omegahh42",
+  "productName": "OmegaHH42",
   "version": "1.0.0",
   "description": "Omega HH42 Thermocouple Thermometer Interface",
   "main": "src/index.js",
   "scripts": {
     "start": "npm run build:css && electron .",
-    "build:css": "npx tailwindcss -i ./src/input.css -o ./src/output.css",
+    "dev": "npm run watch:css & electron .",
+    "build:css": "tailwindcss -i ./src/input.css -o ./src/output.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./src/output.css --watch",
     "build": "npm run build:css",
     "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "npm run build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "build:win": "npm run dist:win",
+    "build:mac": "npm run dist:mac",
+    "build:linux": "npm run dist:linux",
+    "test": "node --test test/*.test.js",
+    "diagnose": "node scripts/diagnose.js",
     "lint": "echo \"No linting configured\""
   },
-  "keywords": [],
+  "keywords": [
+    "electron",
+    "serialport",
+    "thermometer",
+    "omega",
+    "hh42",
+    "thermocouple"
+  ],
   "author": {
     "name": "Patrick Cool",
     "email": "patrickscool+hh42@gmail.com"
@@ -32,5 +47,8 @@
     "electron-builder": "^25.1.8",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15"
+  },
+  "overrides": {
+    "node-gyp": "^11.0.0"
   }
 }
